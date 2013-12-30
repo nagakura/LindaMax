@@ -1,5 +1,6 @@
 UserMongo = require "./user_modules/mongo.js"
 UserLinda = require "./user_modules/linda.js"
+Puid = require "puid"
 
 express = require('express')
 routes =  require('./routes')
@@ -9,7 +10,6 @@ path = require('path')
 url = require "url"
 app = express()
 cookie = require "cookie"
-
 
 app.set('port',process.env.PORT || 3000)
 app.set('views', __dirname + '/views')
@@ -52,12 +52,21 @@ app.get("/:obj", (req, res)->
       res.render("err")
 )
 
+app.get("/:obj/output", (req, res)->
+  res.render "output"
+  UserMongo.clientModel.findOne path:req.params.obj, (err, client)->
+    if !err and client?
+      socket.emit "outputURL", client.url
+)
+
 io = require('socket.io').listen(server)
 io.sockets.on("connection", (socket)->
   socket.on "path", (path)->
     UserMongo.clientModel.findOne path:path, (err, client)->
       if !err and client?
         socket.emit "blocks", client.blocks
+        if client.connections?
+          socket.emit "restoreConnections", client.connections
 
   UserMongo.sensorModel.find({}, (err, sensor)->
     socket.emit "sensors", sensor
@@ -89,7 +98,20 @@ io.sockets.on("connection", (socket)->
         console.log tuple[tuple.length-1]
         linda.io.emit "disconnect"
         socket.emit "lindaData", [data, tuple[tuple.length-1]]
+  
+  socket.on "saveConnections", (data)->
+    path = data[0]
+    if data[1]?
+      connections = data[1]
+    else
+      connections = []
+    UserMongo.saveConnections path, connections
 
+  socket.on "saveOutput", (data)->
+    path = data[0]
+    url = data[1]
+    UserMongo.saveOutput path, url
+  
 
   socket.on "saveClient", (data)->
     path = data[0]
@@ -99,8 +121,14 @@ io.sockets.on("connection", (socket)->
       blocks = data[1]
     else
       blocks = []
-    console.log blocks
+    console.log "blocks", blocks
     UserMongo.saveClient path, blocks
+  
+  uid = null
+  socket.on "uidRequest", ()->
+    puid = new Puid()
+    uid = puid.generate()
+    socket.emit "uidResponse", uid
 
   socket.on("disconnect", ()->
     console.log "control disconnect"

@@ -3,7 +3,7 @@
   var __slice = [].slice;
 
   $(function() {
-    var contents, control, createConnection, createSVGLine, dragFlag, fixedDraggable, path, saveClient, socket, start, test, _ref;
+    var UserEvent, blink, connections, contents, control, createConnection, createSVGpolyline, createUserEvent, dragFlag, event, fixedDraggable, hasEndpolylines, hasStartpolylines, path, polylineMove, revBlink, saveClient, socket, start, test, _ref;
 
     path = "";
     _ref = location.pathname.split(""), start = _ref[0], contents = 2 <= _ref.length ? __slice.call(_ref, 1) : [];
@@ -12,9 +12,17 @@
     socket = io.connect();
     control = io.connect("/control");
     test = io.connect("/test");
+    UserEvent = function() {
+      new EventEmitter().apply(this);
+      return this.name = "";
+    };
+    event = new UserEvent();
+    hasStartpolylines = {};
+    hasEndpolylines = {};
+    connections = [];
     dragFlag = true;
     return socket.on("connect", function() {
-      var blink, drawIntro, i, isHover, n, obj, objectsArray, revBlink, sensor, _i, _len;
+      var drawIntro, i, isHover, marker, n, obj, objectsArray, polygon, sensor, _i, _len;
 
       console.log("connect!");
       socket.emit("path", path);
@@ -23,6 +31,18 @@
         $("<input id='create' type='submit' value='create'>").appendTo(contents).click(function() {
           socket.emit("CreateMono", path);
           return location.reload();
+        });
+      }
+      contents = $("#output");
+      if (contents != null) {
+        socket.on("outputURL", function(url) {
+          return $("#textarea").val(url);
+        });
+        $("<input id='outputData' type='submit' value='submit'>").appendTo(contents).click(function() {
+          var base;
+
+          base = path.split("/");
+          return socket.emit("saveOutput", [base[0], $("#textarea").val()]);
         });
       }
       contents = $("#index");
@@ -49,19 +69,32 @@
       contents = $("#detail");
       if (contents != null) {
         socket.on("blocks", function(blocks) {
-          var i, tar, _i, _len, _results;
+          var i, tar, _i, _len;
 
           console.log("blocks");
-          _results = [];
           for (_i = 0, _len = blocks.length; _i < _len; _i++) {
             i = blocks[_i];
-            if ($("" + i).attr("id") === ("targetObj" || "svg")) {
-              continue;
-            }
             tar = $(i).appendTo($("#field"));
-            _results.push(fixedDraggable(tar));
+            console.log(i);
+            fixedDraggable(tar, true);
           }
-          return _results;
+          return socket.on("restoreConnections", function(_connections) {
+            var array, _j, _len1, _results;
+
+            connections = _connections;
+            _results = [];
+            for (_j = 0, _len1 = _connections.length; _j < _len1; _j++) {
+              i = _connections[_j];
+              if ((i[0] != null) && (i[1] != null)) {
+                array = [$("#" + i[0]), $("#" + i[1])];
+                console.log(array);
+                _results.push(createConnection(array, true));
+              } else {
+                _results.push(void 0);
+              }
+            }
+            return _results;
+          });
         });
         if (!$("#svg").length) {
           $("#field").svg({
@@ -76,14 +109,36 @@
           $("svg").attr({
             id: "svg"
           });
+          marker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
+          marker.setAttribute("id", "mu_us");
+          marker.setAttribute("markerUnits", "userSpaceOnUse");
+          marker.setAttribute("markerWidth", "30");
+          marker.setAttribute("markerHeight", "30");
+          marker.setAttribute("viewBox", "0 0 10 10");
+          marker.setAttribute("refX", "5");
+          marker.setAttribute("refY", "5");
+          $("svg").append(marker);
+          polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+          polygon.setAttribute("points", "0,0 5,5 0,10 10,5");
+          polygon.setAttribute("fill", "red");
+          $("marker").append(polygon);
         }
         if ($("#targetObj").length) {
           console.log("exist");
         } else {
           console.log("not exist");
           if (path !== "") {
-            $("#field").append("<div id=targetObj>" + path + "</div>");
+            $("#field").append("<div id=targetObj></div>");
           }
+          $("#targetObj").append("<div id=dropPosition>output</div>");
+          $("#targetObj").append("<div id=output><a href='" + path + "/output'>" + path + "</a></div>");
+          $("#dropPosition").droppable({
+            accept: ".block",
+            drop: function() {
+              return alert("output");
+            }
+          });
+          $("svg").append(createSVGpolyline(550, 145, 600, 145, "outputLine"));
           console.log(path);
         }
         sensor = $("#sensorContents");
@@ -93,7 +148,7 @@
         }, function() {
           return $(this).children("ul").hide();
         });
-        objectsArray = ["Max", "min", "Switch", "Connection"];
+        objectsArray = ["Max", "min", "Switch", "Connection", "and", "or"];
         for (n = _i = 0, _len = objectsArray.length; _i < _len; n = ++_i) {
           i = objectsArray[n];
           obj.append("<li><a class='obj'>" + i + "</a></li>");
@@ -112,35 +167,46 @@
                     return $(".ui-draggable-disabled").draggable("enable");
                   }
                 });
-              } else if ($(this).html() === "Max" || "min") {
-                tar = $("<div class='obj block' name='" + ($(this).html()) + "' style='left:100px; top:100px'><input type='text' name='delta/sensor/light' value='100' class='onlynum'></div>").appendTo($("#field"));
+              } else if ($(this).html() === "Switch") {
+                tar = $("<div class='obj block' name='" + ($(this).html()) + "' style='left:100px; top:100px'><select name='' id='flip-a' value='on' data-role='slider'><option value='off'>Off</option><option value='on'>On</option></div>").appendTo($("#field"));
+              } else if (($(this).html() === "Max") || ($(this).html() === "min")) {
+                console.log("max, min", $(this).html());
+                tar = $("<div class='obj block' name='" + ($(this).html()) + "' style='left:100px; top:100px'><input type='text' name='' value='100' class='onlynum'></div>").appendTo($("#field"));
                 if ($(this).html() === "Max") {
                   tar.addClass("Max");
                 }
                 if ($(this).html() === "min") {
                   tar.addClass("min");
                 }
-                $(".onlynum").keyup(function() {
-                  var s;
-
-                  s = new Array();
-                  $.each($(this).val().split(""), function(i, v) {
-                    if (v.match(/[0-9]/gi)) {
-                      return s.push(v);
-                    }
-                  });
-                  if (s.length > 0) {
-                    return $(this).val(s.join(''));
-                  } else {
-                    return $(this).val("");
-                  }
-                });
-              } else if ($(this).html() === "Switch") {
-                tar = $("<div class='obj block' name='" + ($(this).html()) + "'><select name='delta/sensor/light' id='flip-a' value='on' data-role='slider'><option value='off'>Off</option><option value='on'>On</option></div>").appendTo($("#field"));
+              } else if (($(this).html() === "and") || ($(this).html() === "or")) {
+                tar = $("<div class='obj block' name='" + ($(this).html()) + "' style='left:100px; top:100px'>" + ($(this).html()) + "</div>").appendTo($("#field"));
               }
               if ($(this).html() !== "Connection") {
-                return fixedDraggable(tar);
+                fixedDraggable(tar);
               }
+              return $(".onlynum").keyup(function() {
+                if ($.isNumeric($(this).val())) {
+                  $(this).attr({
+                    "value": $(this).val()
+                  });
+                } else {
+                  $(this).val("");
+                }
+                /*
+                s = new Array()
+                $.each($(this).val().split(""), (i,v)->
+                  if v.match(/[0-9]/gi) then s.push(v)
+                )
+                if s.length > 0
+                  $(this).val(s.join(''))
+                else
+                  $(this).val("")
+                */
+
+                return $(this).attr({
+                  "value": $(this).val()
+                });
+              });
             });
           }
         }
@@ -154,9 +220,9 @@
             sensor.append("<li><a class='sensor'>" + i.name + "</a></li>");
             if (n === data.length - 1) {
               _results.push($("li .sensor").click(function() {
-                var line, tar;
+                var polyline, tar;
 
-                line = null;
+                polyline = null;
                 tar = $("<div class='sensor block' name='" + ($(this).html()) + "' style='left:100px; top:100px'>" + ($(this).html()) + "</div>").appendTo($("#field"));
                 return fixedDraggable(tar);
               }));
@@ -169,10 +235,10 @@
       }
       isHover = false;
       socket.on("lindaData", function(data) {
-        var maxSelector, minSelector, selector, switchSelector;
+        var selector;
 
         selector = $(".sensor[name='" + data[0] + "']");
-        socket.emit("delta/sensor/light", data[1]);
+        event.emit("" + (selector.attr('id')), data);
         blink(selector);
         if (isHover) {
           $("#explain").append("<p class='inspector'>" + data[1] + "</p>");
@@ -183,65 +249,133 @@
             return console.log(this);
           });
         }
-        selector.hover(function() {
+        return selector.hover(function() {
           return isHover = true;
         }, function() {
           isHover = false;
           return $(".inspector").remove();
         });
-        if ($("select[name='" + data[0] + "']").length) {
-          switchSelector = $("select[name='" + data[0] + "'] option:selected");
-          if (switchSelector.val() === "on") {
-            blink($("select[name='" + data[0] + "']").parent("div"));
-          } else {
-            revBlink($("select[name='" + data[0] + "']").parent("div"));
-          }
-        }
-        if ($("input[name='" + data[0] + "']").length && $.isNumeric(data[1])) {
-          maxSelector = $(".Max input[name='" + data[0] + "']");
-          if (0 + data[1] < 0 + maxSelector.val()) {
-            blink(maxSelector.parent("div"));
-          }
-          minSelector = $(".min input[name='" + data[0] + "']");
-          if (0 + data[1] > 0 + minSelector.val()) {
-            return blink(minSelector.parent("div"));
-          }
-        }
+        /*
+        #select box
+        if $("select[name='#{data[0]}']").length
+          switchSelector = $("select[name='#{data[0]}'] option:selected")
+          if switchSelector.val() is "on"
+            #console.log "on"
+            blink $("select[name='#{data[0]}']").parent("div")
+            event.emit "sensor", data[1]
+            #event.emit "#{$("select[name='#{data[0]}']").attr("id")}", data[1]
+        
+          else
+            #console.log "off"
+            revBlink $("select[name='#{data[0]}']").parent("div")
+            event.emit "#{$("select[name='#{data[0]}']").attr("id")}", data[1]
+            
+        #max and min
+        if $("input[name='#{data[0]}']").length and $.isNumeric(data[1])
+          maxSelector = $(".Max input[name='#{data[0]}']")
+          if 0+data[1] < 0+maxSelector.val()
+            blink maxSelector.parent("div")
+          minSelector = $(".min input[name='#{data[0]}']")
+          if 0+data[1] > 0+minSelector.val()
+            blink minSelector.parent("div")
+        */
+
       });
-      socket.on("disconnect", function() {
+      return socket.on("disconnect", function() {
         return console.log("disconnect");
       });
-      blink = function(selector) {
-        selector.css({
-          backgroundColor: "#CBD6FF"
-        });
-        return setTimeout(function() {
-          return selector.css({
-            backgroundColor: "white"
-          });
-        }, 500);
-      };
-      return revBlink = function(selector) {
-        selector.css({
+    }, blink = function(selector) {
+      selector.css({
+        backgroundColor: "#CBD6FF"
+      });
+      return setTimeout(function() {
+        return selector.css({
           backgroundColor: "white"
         });
-        return setTimeout(function() {
-          return selector.css({
-            backgroundColor: "#CBD6FF"
+      }, 500);
+    }, revBlink = function(selector) {
+      selector.css({
+        backgroundColor: "white"
+      });
+      return setTimeout(function() {
+        return selector.css({
+          backgroundColor: "#CBD6FF"
+        });
+      }, 500);
+    }, fixedDraggable = function(tar, reload) {
+      var uid;
+
+      uid = "";
+      socket.emit("uidRequest");
+      socket.on("uidResponse", function(_uid) {
+        uid = _uid;
+        if (typeof tar.attr("id") === 'undefined') {
+          console.log("create id");
+          return tar.attr({
+            "id": uid
           });
-        }, 500);
-      };
-    }, fixedDraggable = function(tar) {
+        }
+      });
       tar.draggable({
         create: function() {
           console.log("create", $(this).html());
-          socket.emit("saveClient", [path, saveClient()]);
+          if (!reload) {
+            socket.emit("saveClient", [path, saveClient()]);
+          }
           return socket.emit("sensorRequest", $(this).html());
         },
         drag: function() {
-          if (typeof line !== "undefined" && line !== null) {
-            line.setAttribute("x1", $(this).offset().left - ($("html").width() - $("#detail").width()) / 2);
-            return line.setAttribute("y1", $(this).offset().top - 100);
+          var mx, my, point, points, polyline, results, x1, x2, y1, y2, _i, _j, _k, _l, _len, _len1, _len2, _len3, _ref1, _ref2, _results;
+
+          if (hasStartpolylines["" + (tar.attr('id'))] != null) {
+            _ref1 = hasStartpolylines["" + (tar.attr('id'))];
+            for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
+              polyline = _ref1[_i];
+              if (polyline != null) {
+                results = [];
+                points = $(polyline).attr("points").split(" ");
+                for (_j = 0, _len1 = points.length; _j < _len1; _j++) {
+                  point = points[_j];
+                  results.push(point.split(","));
+                }
+                x1 = $(this).offset().left - 50;
+                y1 = $(this).offset().top - 100;
+                mx = (results[2][0] - x1) / 2 + x1;
+                my = (results[2][1] - y1) / 2 + y1;
+                polylineMove(polyline, "x1", x1);
+                polylineMove(polyline, "y1", y1);
+                polylineMove(polyline, "mx", mx);
+                polylineMove(polyline, "my", my);
+              }
+            }
+          }
+          if (hasEndpolylines["" + (tar.attr('id'))] != null) {
+            _ref2 = hasEndpolylines["" + (tar.attr('id'))];
+            _results = [];
+            for (_k = 0, _len2 = _ref2.length; _k < _len2; _k++) {
+              polyline = _ref2[_k];
+              if (polyline != null) {
+                results = [];
+                points = $(polyline).attr("points").split(" ");
+                for (_l = 0, _len3 = points.length; _l < _len3; _l++) {
+                  point = points[_l];
+                  results.push(point.split(","));
+                }
+                x2 = $(this).offset().left - 50;
+                y2 = $(this).offset().top - 100;
+                x1 = parseFloat(results[0][0]);
+                y1 = parseFloat(results[0][1]);
+                mx = (x2 - x1) / 2 + x1;
+                my = (y2 - y1) / 2 + y1;
+                polylineMove(polyline, "x2", x2);
+                polylineMove(polyline, "y2", y2);
+                polylineMove(polyline, "mx", mx);
+                _results.push(polylineMove(polyline, "my", my));
+              } else {
+                _results.push(void 0);
+              }
+            }
+            return _results;
           }
         },
         stop: function() {
@@ -249,42 +383,152 @@
           return socket.emit("saveClient", [path, saveClient()]);
         },
         cursor: "pointer",
+        connectToSortable: "#dropPosition",
         snap: true,
         grid: [10, 10]
       });
       tar.dblclick(function() {
+        var i, id, n, polylineId, removeObj, _i, _j, _len, _len1;
+
+        id = $(this).attr("id");
         console.log("double click");
+        removeObj = [];
+        for (n = _i = 0, _len = connections.length; _i < _len; n = ++_i) {
+          i = connections[n];
+          if (i[0] === id || i[1] === id) {
+            removeObj.push(n);
+            polylineId = i[0] + i[1];
+            $("#" + polylineId).remove();
+          }
+        }
+        for (n = _j = 0, _len1 = removeObj.length; _j < _len1; n = ++_j) {
+          i = removeObj[n];
+          connections.splice(i, 1);
+          if (n === removeObj.length - 1) {
+            socket.emit("saveConnections", [path, connections]);
+          }
+        }
         $(this).remove();
-        return socket.emit("saveClient", [path, saveClient()]);
+        if (reload) {
+          return socket.emit("saveClient", [path, saveClient()]);
+        }
       });
       if (dragFlag) {
         return tar.draggable("enable");
       } else {
         return tar.draggable("disable");
       }
-    }, createSVGLine = function(x1, y1, x2, y2, name) {
-      var line;
+    }, createSVGpolyline = function(x1, y1, x2, y2, id) {
+      var mx, my, polyline;
 
-      line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-      line.setAttribute("x1", x1);
-      line.setAttribute("y1", y1);
-      line.setAttribute("x2", x2);
-      line.setAttribute("y2", y2);
-      line.setAttribute("class", "svgline");
-      line.setAttribute("stroke", "black");
-      line.setAttribute("name", name);
-      console.log("create line");
-      return line;
-    }, createConnection = function(array) {
-      var line, marginLeft, marginTop, obj, tar;
+      polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+      /*
+      polyline.setAttribute("x1", x1)
+      polyline.setAttribute("y1", y1)
+      polyline.setAttribute("x2", x2)
+      polyline.setAttribute("y2", y2)
+      */
+
+      mx = (x2 - x1) / 2 + x1;
+      my = (y2 - y1) / 2 + y1;
+      polyline.setAttribute("points", "" + x1 + "," + y1 + " " + mx + "," + my + " " + x2 + "," + y2);
+      polyline.setAttribute("class", "svgpolyline");
+      polyline.setAttribute("stroke", "black");
+      polyline.setAttribute("stroke-width", "6");
+      polyline.setAttribute("marker-mid", "url(#mu_us)");
+      polyline.setAttribute("id", id);
+      console.log("create polyline");
+      $(polyline).dblclick(function() {
+        var i, n, removeObj, _i, _len;
+
+        removeObj = null;
+        for (n = _i = 0, _len = connections.length; _i < _len; n = ++_i) {
+          i = connections[n];
+          if ($(this).attr("id") === i[0] + i[1]) {
+            removeObj = n;
+            $(this).remove();
+          }
+        }
+        connections.splice(removeObj, 1);
+        return socket.emit("saveConnections", [path, connections]);
+      });
+      return polyline;
+    }, polylineMove = function(polyline, name, num) {
+      var i, point, points, res, results, _i, _j, _len, _len1;
+
+      results = [];
+      res = [];
+      points = $(polyline).attr("points").split(" ");
+      for (_i = 0, _len = points.length; _i < _len; _i++) {
+        point = points[_i];
+        results.push(point.split(","));
+      }
+      switch (name) {
+        case "x1":
+          results[0][0] = "" + num;
+          break;
+        case "y1":
+          results[0][1] = "" + num;
+          break;
+        case "mx":
+          results[1][0] = "" + num;
+          break;
+        case "my":
+          results[1][1] = "" + num;
+          break;
+        case "x2":
+          results[2][0] = "" + num;
+          break;
+        case "y2":
+          results[2][1] = "" + num;
+      }
+      for (_j = 0, _len1 = results.length; _j < _len1; _j++) {
+        i = results[_j];
+        res.push(i.join(","));
+      }
+      return polyline.setAttribute("points", "" + (res.join(" ")));
+    }, createConnection = function(array, reload) {
+      var i, id, marginLeft, marginTop, obj, polyline, tar, _i, _len;
 
       obj = array[0];
       tar = array[1];
-      marginLeft = ($("html").width() - $("#detail").width()) / 2;
+      if (obj === tar) {
+        alert("select other object");
+        return;
+      }
+      if (!reload) {
+        for (_i = 0, _len = connections.length; _i < _len; _i++) {
+          i = connections[_i];
+          if ((i[0] === obj.attr('id') && i[1] === tar.attr('id')) || (i[1] === obj.attr('id') && i[2] === tar.attr('id'))) {
+            alert("this connection already exist");
+            return;
+          }
+        }
+      }
+      marginLeft = 50;
       marginTop = 100;
-      line = createSVGLine(obj.offset().left - marginLeft, obj.offset().top - marginTop, tar.offset().left - marginLeft, tar.offset().top - marginTop);
-      $("svg").append(line);
-      return line;
+      id = obj.attr("id") + tar.attr("id");
+      polyline = createSVGpolyline(obj.offset().left - marginLeft, obj.offset().top - marginTop, tar.offset().left - marginLeft, tar.offset().top - marginTop, id);
+      $("svg").append(polyline);
+      if (hasStartpolylines["" + (obj.attr('id'))] != null) {
+        hasStartpolylines["" + (obj.attr('id'))].push(polyline);
+      } else {
+        hasStartpolylines["" + (obj.attr('id'))] = [];
+        hasStartpolylines["" + (obj.attr('id'))].push(polyline);
+      }
+      if (hasEndpolylines["" + (tar.attr('id'))] != null) {
+        hasEndpolylines["" + (tar.attr('id'))].push(polyline);
+      } else {
+        hasEndpolylines["" + (tar.attr('id'))] = [];
+        hasEndpolylines["" + (tar.attr('id'))].push(polyline);
+      }
+      if (!reload) {
+        connections.push(["" + (obj.attr('id')), "" + (tar.attr('id'))]);
+      }
+      socket.emit("saveConnections", [path, connections]);
+      console.log("saved", connections);
+      createUserEvent(["" + (obj.attr('id')), "" + (tar.attr('id'))]);
+      return polyline;
     }, saveClient = function() {
       var children, i, _i, _len;
 
@@ -296,13 +540,74 @@
       contents = [];
       for (_i = 0, _len = children.length; _i < _len; _i++) {
         i = children[_i];
-        console.log("child", i);
         if ($(i).hasClass("block")) {
           contents.push(i);
         }
       }
       console.log("saved: ", contents);
       return contents;
+    }, createUserEvent = function(connection) {
+      return event.on("" + connection[0], function(data) {
+        var flag, n, switchSelector, tar, _i, _len, _results;
+
+        tar = $("#" + connection[1]);
+        switch ($("#" + connection[1]).attr("name")) {
+          case "Switch":
+            console.log("create Swicth event");
+            switchSelector = tar.children("select[name=select]");
+            if (switchSelector.val() === "on") {
+              blink(tar);
+              return event.emit("" + connection[1], data);
+            } else {
+              revBlink(tar);
+              return setInterval(function() {
+                if (data == null) {
+                  return event.emit("" + connection[1], false);
+                }
+              }, 1000);
+            }
+            break;
+          case "Max":
+            console.log("create Max event");
+            if ($.isNumeric(data[1]) && (parseFloat(data[1]) <= parseFloat(tar.children("input").val()))) {
+              blink(tar);
+              return event.emit("" + connection[1], data);
+            }
+            break;
+          case "min":
+            console.log("create min event");
+            if ($.isNumeric(data[1]) && (parseFloat(data[1]) >= parseFloat(tar.children("input").val()))) {
+              blink(tar);
+              return event.emit("" + connection[1], data);
+            }
+            break;
+          case "and":
+            console.log("create and event");
+            flag = 0;
+            _results = [];
+            for (n = _i = 0, _len = connections.length; _i < _len; n = ++_i) {
+              connection = connections[n];
+              event.on(connection[0], function(data) {
+                return flag++;
+              });
+              if (n === connections.length - 1) {
+                if (flag === n - 1) {
+                  _results.push(event.emit("" + connection[1], true));
+                } else {
+                  _results.push(void 0);
+                }
+              } else {
+                _results.push(void 0);
+              }
+            }
+            return _results;
+            break;
+          case "or":
+            console.log("create or event");
+            blink(tar);
+            return event.emit("" + connection[1], data);
+        }
+      });
     });
   });
 

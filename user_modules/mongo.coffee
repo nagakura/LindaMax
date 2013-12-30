@@ -17,13 +17,14 @@ SensorSchema = new Schema
 
 ClientSchema = new Schema
   path:     type:String, unique: true
+  url:      type:String, unique:true
   blocks:   []
+  connections: []
 
 #modelを登録
 Mono   = db.model "monos", MonoSchema
 Sensor = db.model "sensors", SensorSchema
 Client = db.model "clients", ClientSchema
-
 #オブジェクトを作成
 createMono = (name, content)->
   if name is ""
@@ -87,6 +88,25 @@ saveClient = (path, blocks)->
       client.save()
       console.log "client renewal"
 
+#コネクションを保存
+saveConnections = (path, connections)->
+  Client.findOne path: path, (err, client)->
+    if !err and !client?
+      console.log "client not found"
+    if !err and client?
+      client.connections = connections
+      client.save()
+      console.log "connections renewal"
+
+#urlを保存
+saveOutput = (path, url)->
+  Client.findOne path: path, (err, client)->
+    if !err and !client?
+      console.log "client not found"
+    if !err and client?
+      client.url = url
+      client.save()
+      console.log "output data renewal"
 
 #センサー情報取得
 #getSensor = (name)->
@@ -111,6 +131,8 @@ module.exports =
   createSensor: createSensor
   addSensor: addSensor
   saveClient: saveClient
+  saveConnections: saveConnections
+  saveOutput: saveOutput
   monoModel: Mono
   sensorModel: Sensor
   clientModel: Client

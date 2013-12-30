@@ -1,6 +1,8 @@
 body {
   padding: 50px;
   font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+  margin: 0 auro;
+  width: 1000px;
 }
 
 a {
@@ -51,7 +53,14 @@ a {
   color: #fff;
 }
 
+#svg{
+  z-index: -1;
+}
 
+.block{
+  z-index: 1;
+  background-color: white;
+}
 
 /*
 .sensor{
@@ -107,18 +116,42 @@ a {
   border-color: gray;
 }
 
+
+
 #targetObj{
   font: 25px "Lucida Grande", Helvetica, Arial, sans-serif;
+  text-align: center;
   margin: 10px;
   padding: 10px;
   position: absolute;
-  display: inline-block;
-  border: 5px solid;
-  border-color: black;
   left: 500px;
   top: 200px;
-  
+  width: 300px;
+  float: left;
 }
+
+#dropPosition{
+  font: 10px "Lucida Grande", Helvetica, Arial, sans-serif;
+  font-color: #C2B4C1;
+  margin: 10px;
+  padding: 10px;
+  width: 60px;
+  height: 30px;
+  border: 5px solid;
+  border-color: black;
+  float: left;
+}
+
+#output{
+  font: 10px;
+  width: 100px;
+  height: 30px;
+  padding-top: 20px;
+  padding-left: 40px;
+  float: left;
+  text-align: left;
+}
+
 
 #explain{
   display: inline-block;
