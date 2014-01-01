@@ -42,6 +42,8 @@ $ ->
         $("#textarea").val(url)
       $("<input id='outputData' type='submit' value='submit'>").appendTo(contents).click ->
         base = path.split "/"
+        console.log base[0]
+        alert "save output"
         socket.emit "saveOutput", [base[0], $("#textarea").val()]
         
 

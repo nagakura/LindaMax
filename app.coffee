@@ -53,10 +53,15 @@ app.get("/:obj", (req, res)->
 )
 
 app.get("/:obj/output", (req, res)->
-  res.render "output"
+  console.log req.params.obj
   UserMongo.clientModel.findOne path:req.params.obj, (err, client)->
-    if !err and client?
-      socket.emit "outputURL", client.url
+    if !err and client? and client.url?
+      res.render "output", {url: client.url}
+    else
+      res.render "output"
+      
+      #sendOutputData()
+      #socket.emit "outputURL", client.url
 )
 
 io = require('socket.io').listen(server)

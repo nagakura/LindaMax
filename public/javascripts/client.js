@@ -42,6 +42,8 @@
           var base;
 
           base = path.split("/");
+          console.log(base[0]);
+          alert("save output");
           return socket.emit("saveOutput", [base[0], $("#textarea").val()]);
         });
       }
