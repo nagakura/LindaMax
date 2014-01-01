@@ -7,11 +7,12 @@ routes =  require('./routes')
 user = require('./routes/user')
 http = require('http')
 path = require('path')
+request = require "request"
 url = require "url"
 app = express()
 cookie = require "cookie"
 
-app.set('port',process.env.PORT || 3000)
+app.set('port',process.env.PORT || 4555)
 app.set('views', __dirname + '/views')
 app.set('view engine','jade')
 app.use(express.favicon())
@@ -34,8 +35,19 @@ server = http.createServer(app).listen(app.get('port'), ()->
 
 #app.get('/', routes.detail)
 
+app.get("/control", (req,res)->
+  res.render("index", {title: "LindaMax"})
+)
+
 app.get("/", (req,res)->
-  res.render("index", {title: "linda"})
+  res.render("explain", {title: "LindaMax"})
+)
+
+app.post("/", (req,res)->
+  data = {}
+  data.name = req.body.name
+  res.set('Content-Type', 'application/json')
+  res.json(data)
 )
 
 app.get("/:obj", (req, res)->
@@ -56,7 +68,7 @@ app.get("/:obj/output", (req, res)->
   console.log req.params.obj
   UserMongo.clientModel.findOne path:req.params.obj, (err, client)->
     if !err and client? and client.url?
-      res.render "output", {url: client.url}
+      res.render "output", {url: client.url, form:client.form}
     else
       res.render "output"
       
@@ -114,9 +126,28 @@ io.sockets.on("connection", (socket)->
 
   socket.on "saveOutput", (data)->
     path = data[0]
-    url = data[1]
-    UserMongo.saveOutput path, url
+    url = data[1][0]
+    form = data[1][1]
+    UserMongo.saveOutput path, url, form
   
+  socket.on "urlRequest", (path)->
+    url = null
+    UserMongo.clientModel.findOne path:path, (err, client)->
+      if !err and client?
+        options =
+          uri: client.url
+          #form: {text: "hogehoge"}
+          form: JSON.parse(client.form)
+          json: true
+        console.log "uri", client.url
+        console.log "form", JSON.parse(client.form)
+        request.get(options, (error, response, body)->
+          if !error and response.statusCode is 200
+            console.log body
+          else
+            console.log "error:", response.statusCode
+        )
+
 
   socket.on "saveClient", (data)->
     path = data[0]

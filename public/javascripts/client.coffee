@@ -44,7 +44,7 @@ $ ->
         base = path.split "/"
         console.log base[0]
         alert "save output"
-        socket.emit "saveOutput", [base[0], $("#textarea").val()]
+        socket.emit "saveOutput", [base[0], [$("#textarea").val(), $("#formData").val()]]
         
 
     #------------index---------------
@@ -76,11 +76,12 @@ $ ->
 
       socket.on "blocks", (blocks)->
         console.log "blocks"
-        for i in blocks
+        for i, n in blocks
           #if $("#{i}").attr("id") is ("targetObj" or "svg") then continue
           tar = ($(i).appendTo $("#field"))
           console.log i
           fixedDraggable tar, true
+          createURLRequest tar
         
         socket.on "restoreConnections", (_connections)->
           connections = _connections
@@ -125,8 +126,23 @@ $ ->
         $("#targetObj").append "<div id=output><a href='#{path}/output'>#{path}</a></div>"
         $("#dropPosition").droppable
           accept: ".block"
-          drop: ->
+          drop: (ev, ui)->
             alert("output")
+            #console.log "dragged", ui.draggable.html()
+            tar = ui.draggable
+            tar.addClass "dropped"
+            socket.emit "saveClient", [path, saveClient()]
+            createURLRequest(tar)
+            ###
+            event.on tar.attr("id"), (data)->
+              console.log "url request"
+              socket.emit "urlRequest", path
+            ###
+          out: (ev, ui)->
+            tar = ui.draggable
+            tar.removeClass "dropped"
+            socket.emit "saveClient", [path, saveClient()]
+
         $("svg").append (createSVGpolyline 550, 145, 600, 145, "outputLine")
         #revert: true
         console.log path
@@ -242,6 +258,7 @@ $ ->
           blink minSelector.parent("div")
       ###
 
+      
     socket.on("disconnect", ()->
       console.log "disconnect"
     )
@@ -450,6 +467,7 @@ $ ->
     
 
   #----------------Event control-----------------
+
   #connectionsを全部みる
   createUserEvent = (connection)->
     event.on "#{connection[0]}", (data)->
@@ -492,3 +510,19 @@ $ ->
           blink tar
           event.emit ("#{connection[1]}"), data
   )
+  #output
+  createURLRequest = (tar)->
+    if $(".dropped").length
+      event.on tar.attr("id"), (data)->
+        if tar.hasClass("dropped") and $(".dropped").length
+          console.log "url request"
+          socket.emit "urlRequest", path
+
+  #url reqest
+  ###
+  createURLRequest = (tar)->
+    if $(".dropped").length?
+      event.on tar.attr("id"), (data)->
+        console.log "url request"
+        socket.emit "urlRequest", [path]
+  ###

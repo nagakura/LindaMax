@@ -3,7 +3,7 @@
   var __slice = [].slice;
 
   $(function() {
-    var UserEvent, blink, connections, contents, control, createConnection, createSVGpolyline, createUserEvent, dragFlag, event, fixedDraggable, hasEndpolylines, hasStartpolylines, path, polylineMove, revBlink, saveClient, socket, start, test, _ref;
+    var UserEvent, blink, connections, contents, control, createConnection, createSVGpolyline, createURLRequest, createUserEvent, dragFlag, event, fixedDraggable, hasEndpolylines, hasStartpolylines, path, polylineMove, revBlink, saveClient, socket, start, test, _ref;
 
     path = "";
     _ref = location.pathname.split(""), start = _ref[0], contents = 2 <= _ref.length ? __slice.call(_ref, 1) : [];
@@ -21,7 +21,7 @@
     hasEndpolylines = {};
     connections = [];
     dragFlag = true;
-    return socket.on("connect", function() {
+    socket.on("connect", function() {
       var drawIntro, i, isHover, marker, n, obj, objectsArray, polygon, sensor, _i, _len;
 
       console.log("connect!");
@@ -44,7 +44,7 @@
           base = path.split("/");
           console.log(base[0]);
           alert("save output");
-          return socket.emit("saveOutput", [base[0], $("#textarea").val()]);
+          return socket.emit("saveOutput", [base[0], [$("#textarea").val(), $("#formData").val()]]);
         });
       }
       contents = $("#index");
@@ -71,14 +71,15 @@
       contents = $("#detail");
       if (contents != null) {
         socket.on("blocks", function(blocks) {
-          var i, tar, _i, _len;
+          var i, n, tar, _i, _len;
 
           console.log("blocks");
-          for (_i = 0, _len = blocks.length; _i < _len; _i++) {
-            i = blocks[_i];
+          for (n = _i = 0, _len = blocks.length; _i < _len; n = ++_i) {
+            i = blocks[n];
             tar = $(i).appendTo($("#field"));
             console.log(i);
             fixedDraggable(tar, true);
+            createURLRequest(tar);
           }
           return socket.on("restoreConnections", function(_connections) {
             var array, _j, _len1, _results;
@@ -136,8 +137,27 @@
           $("#targetObj").append("<div id=output><a href='" + path + "/output'>" + path + "</a></div>");
           $("#dropPosition").droppable({
             accept: ".block",
-            drop: function() {
-              return alert("output");
+            drop: function(ev, ui) {
+              var tar;
+
+              alert("output");
+              tar = ui.draggable;
+              tar.addClass("dropped");
+              socket.emit("saveClient", [path, saveClient()]);
+              return createURLRequest(tar);
+              /*
+              event.on tar.attr("id"), (data)->
+                console.log "url request"
+                socket.emit "urlRequest", path
+              */
+
+            },
+            out: function(ev, ui) {
+              var tar;
+
+              tar = ui.draggable;
+              tar.removeClass("dropped");
+              return socket.emit("saveClient", [path, saveClient()]);
             }
           });
           $("svg").append(createSVGpolyline(550, 145, 600, 145, "outputLine"));
@@ -611,6 +631,24 @@
         }
       });
     });
+    return createURLRequest = function(tar) {
+      if ($(".dropped").length) {
+        return event.on(tar.attr("id"), function(data) {
+          if (tar.hasClass("dropped") && $(".dropped").length) {
+            console.log("url request");
+            return socket.emit("urlRequest", path);
+          }
+        });
+      }
+    };
+    /*
+    createURLRequest = (tar)->
+      if $(".dropped").length?
+        event.on tar.attr("id"), (data)->
+          console.log "url request"
+          socket.emit "urlRequest", [path]
+    */
+
   });
 
 }).call(this);

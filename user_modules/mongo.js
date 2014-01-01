@@ -52,6 +52,7 @@
       type: String,
       unique: true
     },
+    form: {},
     blocks: [],
     connections: []
   });
@@ -184,7 +185,7 @@
     });
   };
 
-  saveOutput = function(path, url) {
+  saveOutput = function(path, url, form) {
     return Client.findOne({
       path: path
     }, function(err, client) {
@@ -193,6 +194,7 @@
       }
       if (!err && (client != null)) {
         client.url = url;
+        client.form = form;
         client.save();
         return console.log("output data renewal");
       }

@@ -18,6 +18,7 @@ SensorSchema = new Schema
 ClientSchema = new Schema
   path:     type:String, unique: true
   url:      type:String, unique:true
+  form:     {}
   blocks:   []
   connections: []
 
@@ -99,12 +100,13 @@ saveConnections = (path, connections)->
       console.log "connections renewal"
 
 #urlを保存
-saveOutput = (path, url)->
+saveOutput = (path, url, form)->
   Client.findOne path: path, (err, client)->
     if !err and !client?
       console.log "client not found"
     if !err and client?
       client.url = url
+      client.form = form
       client.save()
       console.log "output data renewal"
 
