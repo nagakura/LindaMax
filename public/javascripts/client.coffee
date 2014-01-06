@@ -8,14 +8,13 @@ $ ->
   socket  = io.connect()
   control = io.connect("/control")
   test = io.connect "/test"
-  
+
   #------------EventEmitter---------------
   UserEvent = ->
     new EventEmitter().apply(this)
     this.name = ""
   event = new UserEvent()
   #event.name = "dataChain"
-  
 
   #それぞれのオブジェクトがもつpolyline
   hasStartpolylines = {}
@@ -27,7 +26,7 @@ $ ->
     console.log "connect!"
 
     socket.emit("path",path)
-    
+
     #------------err---------------
     contents = $("#err")
     if contents?
@@ -45,7 +44,6 @@ $ ->
         console.log base[0]
         alert "save output"
         socket.emit "saveOutput", [base[0], [$("#textarea").val(), $("#formData").val()]]
-        
 
     #------------index---------------
     contents = $("#index")
@@ -69,7 +67,7 @@ $ ->
       $("#add").click(()->
         socket.emit("AddSensor", [$("#monoN").val(), $("#sensorN").val()])
       )
-    
+
     #----------------detail-----------------
     contents = $("#detail")
     if contents?
@@ -82,7 +80,7 @@ $ ->
           console.log i
           fixedDraggable tar, true
           createURLRequest tar
-        
+
         socket.on "restoreConnections", (_connections)->
           connections = _connections
           for i in _connections
@@ -112,10 +110,6 @@ $ ->
         polygon.setAttribute("fill", "red")
         $("marker").append polygon
 
-
-        #$("svg").append "<marker id='mu_us' markerUnits='userSpaceOnUse' markerWidth='30' markerHeight='30' viewBox='0 0 10 10' refX='5' refY='5'><polygon points='0,0 5,5 0,10 10,5' fill='red'/></marker>"
-        
-        #ここまでテンプレ
       #----------------SVG-----------------
       if $("#targetObj").length
         console.log "exist"
@@ -128,35 +122,28 @@ $ ->
           accept: ".block"
           drop: (ev, ui)->
             alert("output")
-            #console.log "dragged", ui.draggable.html()
             tar = ui.draggable
             tar.addClass "dropped"
             socket.emit "saveClient", [path, saveClient()]
             createURLRequest(tar)
-            ###
-            event.on tar.attr("id"), (data)->
-              console.log "url request"
-              socket.emit "urlRequest", path
-            ###
           out: (ev, ui)->
             tar = ui.draggable
             tar.removeClass "dropped"
             socket.emit "saveClient", [path, saveClient()]
 
         $("svg").append (createSVGpolyline 550, 145, 600, 145, "outputLine")
-        #revert: true
         console.log path
 
 
       sensor = $("#sensorContents")
       obj = $("#objContents")
-      
+
       #---------------Menu-----------------
       $("#menu li").hover ->
         $(this).children("ul").show()
       , ->
         $(this).children("ul").hide()
-      
+
       #--------------ObjContents--------------
       objectsArray = ["Max", "min", "Switch", "Connection", "and", "or"]
       for i, n in objectsArray
@@ -191,23 +178,13 @@ $ ->
                 $(this).attr("value":$(this).val())
               else
                 $(this).val("")
-              ###
-              s = new Array()
-              $.each($(this).val().split(""), (i,v)->
-                if v.match(/[0-9]/gi) then s.push(v)
-              )
-              if s.length > 0
-                $(this).val(s.join(''))
-              else
-                $(this).val("")
-              ###
               $(this).attr("value": $(this).val())
       #--------------SensorContents--------------
       socket.on "sensors", (data)->
         console.log data
         for i, n in data
           sensor.append "<li><a class='sensor'>#{i.name}</a></li>"
-      
+
           #--------------SensorAction--------------
           if n is data.length-1
             $("li .sensor").click ->
@@ -215,7 +192,7 @@ $ ->
               polyline = null
               tar = ($("<div class='sensor block' name='#{$(this).html()}' style='left:100px; top:100px'>#{$(this).html()}</div>").appendTo $("#field"))
               fixedDraggable tar
-    
+
     isHover = false
     socket.on "lindaData", (data)->
       selector = $(".sensor[name='#{data[0]}']")
@@ -233,32 +210,7 @@ $ ->
       , ->
         isHover = false
         $(".inspector").remove()
-      ###
-      #select box
-      if $("select[name='#{data[0]}']").length
-        switchSelector = $("select[name='#{data[0]}'] option:selected")
-        if switchSelector.val() is "on"
-          #console.log "on"
-          blink $("select[name='#{data[0]}']").parent("div")
-          event.emit "sensor", data[1]
-          #event.emit "#{$("select[name='#{data[0]}']").attr("id")}", data[1]
 
-        else
-          #console.log "off"
-          revBlink $("select[name='#{data[0]}']").parent("div")
-          event.emit "#{$("select[name='#{data[0]}']").attr("id")}", data[1]
-          
-      #max and min
-      if $("input[name='#{data[0]}']").length and $.isNumeric(data[1])
-        maxSelector = $(".Max input[name='#{data[0]}']")
-        if 0+data[1] < 0+maxSelector.val()
-          blink maxSelector.parent("div")
-        minSelector = $(".min input[name='#{data[0]}']")
-        if 0+data[1] > 0+minSelector.val()
-          blink minSelector.parent("div")
-      ###
-
-      
     socket.on("disconnect", ()->
       console.log "disconnect"
     )
@@ -275,7 +227,7 @@ $ ->
     setTimeout ->
       selector.css {backgroundColor:"#CBD6FF"}
     , 500
-  
+
   fixedDraggable = (tar, reload)->
     #uid設定
     uid = ""
@@ -285,7 +237,7 @@ $ ->
       if typeof tar.attr("id") is 'undefined'
         console.log "create id"
         tar.attr("id":uid)
-      
+
     tar.draggable
       create: ->
         console.log "create", $(this).html()
@@ -299,9 +251,6 @@ $ ->
               points = $(polyline).attr("points").split(" ")
               for point in points
                 results.push point.split(",")
-              #polyline.setAttribute("x1", $(this).offset().left-50)
-              #polyline.setAttribute("x1", $(this).offset().left-($("body").width()-$("#detail").width())/2)
-              #polyline.setAttribute("y1", $(this).offset().top-100)
               x1 = $(this).offset().left-50
               y1 = $(this).offset().top-100
               mx = (results[2][0]-x1)/2+x1
@@ -317,9 +266,6 @@ $ ->
               points = $(polyline).attr("points").split(" ")
               for point in points
                 results.push point.split(",")
-              #polyline.setAttribute("x2", $(this).offset().left-50)
-              #polyline.setAttribute("x2", $(this).offset().left-($("body").width()-$("#detail").width())/2)
-              #polyline.setAttribute("y2", $(this).offset().top-100)
               x2 = $(this).offset().left-50
               y2 = $(this).offset().top-100
               x1 = parseFloat results[0][0]
@@ -357,18 +303,9 @@ $ ->
       tar.draggable("enable")
     else
       tar.draggable("disable")
-    
-
-
 
   createSVGpolyline = (x1, y1, x2, y2, id)->
     polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline")
-    ###
-    polyline.setAttribute("x1", x1)
-    polyline.setAttribute("y1", y1)
-    polyline.setAttribute("x2", x2)
-    polyline.setAttribute("y2", y2)
-    ###
     mx = (x2-x1)/2+x1
     my = (y2-y1)/2+y1
 
@@ -379,7 +316,6 @@ $ ->
     polyline.setAttribute("marker-mid", "url(#mu_us)")
     polyline.setAttribute("id", id)
     console.log "create polyline"
-    #$("svg").append polyline
     $(polyline).dblclick ->
       removeObj = null
       for i, n in connections
@@ -388,7 +324,6 @@ $ ->
           $(this).remove()
       connections.splice removeObj, 1
       socket.emit "saveConnections", [path, connections]
-      #socket.emit ""
     polyline
 
   polylineMove = (polyline, name, num)->
@@ -397,7 +332,6 @@ $ ->
     points = $(polyline).attr("points").split(" ")
     for point in points
       results.push point.split(",")
-    #console.log results
     switch name
       when "x1"
         results[0][0] = "#{num}"
@@ -414,7 +348,7 @@ $ ->
     for i in results
       res.push i.join(",")
     polyline.setAttribute("points", "#{res.join(" ")}")
-  
+
   createConnection = (array, reload)->
     obj = array[0]
     tar = array[1]
@@ -426,7 +360,6 @@ $ ->
         if (i[0] == obj.attr('id') and i[1] == tar.attr('id')) or (i[1] == obj.attr('id') and i[2] == tar.attr('id'))
           alert "this connection already exist"
           return
-    #marginLeft = ($("body").width()-$("#detail").width())/2
     marginLeft = 50
     marginTop  = 100
     id = obj.attr("id") + tar.attr("id")
@@ -447,27 +380,20 @@ $ ->
     console.log "saved", connections
     createUserEvent ["#{obj.attr('id')}", "#{tar.attr('id')}"]
     polyline
-    
-    
-
 
   saveClient = ->
     if $("#field").html()?
       children = $("#field").html().replace(/<\/div>/g, "</div>区切り").replace(/<\/svg>/g, "</svg>区切り").split("区切り")
     else
       return []
-    #children = $("#field").children()
     contents = []
     for i in children
-      #console.log "child", i
       if $(i).hasClass("block")
         contents.push i
     console.log "saved: ", contents
     contents
-    
 
   #----------------Event control-----------------
-
   #connectionsを全部みる
   createUserEvent = (connection)->
     event.on "#{connection[0]}", (data)->
@@ -484,7 +410,7 @@ $ ->
             setInterval ->
               event.emit ("#{connection[1]}"), false if !data?
             ,1000
-          
+
         when "Max"
           console.log "create Max event"
           if $.isNumeric(data[1]) and (parseFloat(data[1]) <= parseFloat(tar.children("input").val()))
@@ -504,7 +430,7 @@ $ ->
             if n is connections.length-1
               if flag is n-1
                 event.emit ("#{connection[1]}"), true
-              
+
         when "or"
           console.log "create or event"
           blink tar
@@ -517,12 +443,3 @@ $ ->
         if tar.hasClass("dropped") and $(".dropped").length
           console.log "url request"
           socket.emit "urlRequest", path
-
-  #url reqest
-  ###
-  createURLRequest = (tar)->
-    if $(".dropped").length?
-      event.on tar.attr("id"), (data)->
-        console.log "url request"
-        socket.emit "urlRequest", [path]
-  ###
