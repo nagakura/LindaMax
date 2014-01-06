@@ -5,6 +5,12 @@ body {
   width: 1000px;
 }
 
+#delete{
+  position: absolute;
+  bottom: 50px;
+  left: 50px;
+}
+
 a {
   color: #00B7FF;
 }
@@ -76,7 +82,7 @@ a {
 */
 
 .slider{
-  
+
 }
 
 .button{
@@ -174,8 +180,8 @@ a {
 #svgintro {
   float: right;
   width: 150px;
-  height: 150px; 
-  margin-right: 30px; 
-  background: #fff; 
-  border: 1px solid #3c8243; 
+  height: 150px;
+  margin-right: 30px;
+  background: #fff;
+  border: 1px solid #3c8243;
 }
