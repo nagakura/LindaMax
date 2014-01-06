@@ -145,12 +145,6 @@
               tar.addClass("dropped");
               socket.emit("saveClient", [path, saveClient()]);
               return createURLRequest(tar);
-              /*
-              event.on tar.attr("id"), (data)->
-                console.log "url request"
-                socket.emit "urlRequest", path
-              */
-
             },
             out: function(ev, ui) {
               var tar;
@@ -214,17 +208,6 @@
                 } else {
                   $(this).val("");
                 }
-                /*
-                s = new Array()
-                $.each($(this).val().split(""), (i,v)->
-                  if v.match(/[0-9]/gi) then s.push(v)
-                )
-                if s.length > 0
-                  $(this).val(s.join(''))
-                else
-                  $(this).val("")
-                */
-
                 return $(this).attr({
                   "value": $(this).val()
                 });
@@ -277,31 +260,6 @@
           isHover = false;
           return $(".inspector").remove();
         });
-        /*
-        #select box
-        if $("select[name='#{data[0]}']").length
-          switchSelector = $("select[name='#{data[0]}'] option:selected")
-          if switchSelector.val() is "on"
-            #console.log "on"
-            blink $("select[name='#{data[0]}']").parent("div")
-            event.emit "sensor", data[1]
-            #event.emit "#{$("select[name='#{data[0]}']").attr("id")}", data[1]
-        
-          else
-            #console.log "off"
-            revBlink $("select[name='#{data[0]}']").parent("div")
-            event.emit "#{$("select[name='#{data[0]}']").attr("id")}", data[1]
-            
-        #max and min
-        if $("input[name='#{data[0]}']").length and $.isNumeric(data[1])
-          maxSelector = $(".Max input[name='#{data[0]}']")
-          if 0+data[1] < 0+maxSelector.val()
-            blink maxSelector.parent("div")
-          minSelector = $(".min input[name='#{data[0]}']")
-          if 0+data[1] > 0+minSelector.val()
-            blink minSelector.parent("div")
-        */
-
       });
       return socket.on("disconnect", function() {
         return console.log("disconnect");
@@ -444,13 +402,6 @@
       var mx, my, polyline;
 
       polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
-      /*
-      polyline.setAttribute("x1", x1)
-      polyline.setAttribute("y1", y1)
-      polyline.setAttribute("x2", x2)
-      polyline.setAttribute("y2", y2)
-      */
-
       mx = (x2 - x1) / 2 + x1;
       my = (y2 - y1) / 2 + y1;
       polyline.setAttribute("points", "" + x1 + "," + y1 + " " + mx + "," + my + " " + x2 + "," + y2);
@@ -641,14 +592,6 @@
         });
       }
     };
-    /*
-    createURLRequest = (tar)->
-      if $(".dropped").length?
-        event.on tar.attr("id"), (data)->
-          console.log "url request"
-          socket.emit "urlRequest", [path]
-    */
-
   });
 
 }).call(this);

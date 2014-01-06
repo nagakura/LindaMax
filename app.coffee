@@ -32,9 +32,6 @@ server = http.createServer(app).listen(app.get('port'), ()->
   console.log('Express server listening on port ' + app.get('port'))
 )
 
-
-#app.get('/', routes.detail)
-
 app.get("/control", (req,res)->
   res.render("index", {title: "LindaMax"})
 )
@@ -55,10 +52,6 @@ app.get("/:obj", (req, res)->
   Mono = UserMongo.monoModel
   Mono.findOne(name: req.params.obj).populate("sensors").exec (err, mono)->
     if mono?
-      ###
-      console.log mono.sensors
-      res.send(mono.sensors)
-      ###
       res.render("detail")
     else
       res.render("err")
@@ -71,9 +64,6 @@ app.get("/:obj/output", (req, res)->
       res.render "output", {url: client.url, form:client.form}
     else
       res.render "output"
-      
-      #sendOutputData()
-      #socket.emit "outputURL", client.url
 )
 
 io = require('socket.io').listen(server)
@@ -100,14 +90,20 @@ io.sockets.on("connection", (socket)->
         console.log tuple[tuple.length-1]
         linda.io.emit "disconnect"
         UserMongo.createSensor data, tuple[2]
-    
+
   socket.on "AddSensor", (data)->
     UserMongo.addSensor data[0], data[1]
-  
+
   socket.on "sensorRequest", (data)->
     contents = data.split("/")
     linda = UserLinda.linda contents[0]
     contents.shift()
+    #test
+    ###
+    setInterval ->
+      socket.emit "lindaData", [data, 7+Math.random()*2]
+    , 2000
+    ###
     linda.io.on "connect", ->
       #linda.ts.read contents, (tuple, info)->
       linda.ts.watch contents, (tuple, info)->
@@ -115,7 +111,7 @@ io.sockets.on("connection", (socket)->
         console.log tuple[tuple.length-1]
         linda.io.emit "disconnect"
         socket.emit "lindaData", [data, tuple[tuple.length-1]]
-  
+
   socket.on "saveConnections", (data)->
     path = data[0]
     if data[1]?
@@ -129,7 +125,7 @@ io.sockets.on("connection", (socket)->
     url = data[1][0]
     form = data[1][1]
     UserMongo.saveOutput path, url, form
-  
+
   socket.on "urlRequest", (path)->
     url = null
     UserMongo.clientModel.findOne path:path, (err, client)->
@@ -151,15 +147,13 @@ io.sockets.on("connection", (socket)->
 
   socket.on "saveClient", (data)->
     path = data[0]
-    #blocks = data[1].replace(/<\/div>/g, "</div>区切り").split("区切り")
-    #blocks.pop()
     if data[1]?
       blocks = data[1]
     else
       blocks = []
     console.log "blocks", blocks
     UserMongo.saveClient path, blocks
-  
+
   uid = null
   socket.on "uidRequest", ()->
     puid = new Puid()
