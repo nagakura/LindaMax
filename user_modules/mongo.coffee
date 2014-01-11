@@ -17,10 +17,10 @@ SensorSchema = new Schema
 
 ClientSchema = new Schema
   path:     type:String, unique: true
-  url:      type:String, unique:true
-  form:     {}
-  blocks:   []
-  connections: []
+  url:      type:String
+  form:     {}, default: "empty"
+  blocks:   [], default: []
+  connections: [], default: []
 
 #modelを登録
 Mono   = db.model "monos", MonoSchema
@@ -77,17 +77,18 @@ addSensor = (monoN, sensorN)->
 #クライアント情報を保存
 saveClient = (path, blocks)->
   Client.findOne path: path, (err, client)->
-    if !err and !client?
-      buf = new Client
-        path: path
-        blocks: blocks
-      buf.save()
-      console.log "client saved"
     if !err and client?
       client.path = path
       client.blocks = blocks
       client.save()
       console.log "client renewal"
+    else if !err and !client?
+      b = new Client
+        path: path
+        blocks: blocks
+      b.save()
+      console.log "client saved"
+
 
 #コネクションを保存
 saveConnections = (path, connections)->
@@ -139,4 +140,4 @@ module.exports =
   sensorModel: Sensor
   clientModel: Client
   #getSensor: getSensor
-  
+

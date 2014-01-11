@@ -49,12 +49,14 @@
       unique: true
     },
     url: {
-      type: String,
-      unique: true
+      type: String
     },
     form: {},
+    "default": "empty",
     blocks: [],
-    connections: []
+    "default": [],
+    connections: [],
+    "default": []
   });
 
   Mono = db.model("monos", MonoSchema);
@@ -151,21 +153,20 @@
     return Client.findOne({
       path: path
     }, function(err, client) {
-      var buf;
+      var b;
 
-      if (!err && (client == null)) {
-        buf = new Client({
-          path: path,
-          blocks: blocks
-        });
-        buf.save();
-        console.log("client saved");
-      }
       if (!err && (client != null)) {
         client.path = path;
         client.blocks = blocks;
         client.save();
         return console.log("client renewal");
+      } else if (!err && (client == null)) {
+        b = new Client({
+          path: path,
+          blocks: blocks
+        });
+        b.save();
+        return console.log("client saved");
       }
     });
   };

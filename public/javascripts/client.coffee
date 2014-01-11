@@ -54,6 +54,7 @@ $ ->
       contents.append("<input id='mono' type='submit' value='create'>")
       $("#mono").click(()->
         socket.emit("CreateMono", $("#monoN").val())
+        alert "create mono #{$("#monoN").val()}"
       )
 
       contents.append("<p>Create Sensor</p>")
@@ -61,6 +62,7 @@ $ ->
       contents.append("<input id='sensor' type='submit' value='create'>")
       $("#sensor").click(()->
         socket.emit("CreateSensor", $("#sensorN").val())
+        alert "create sensor #{$("#sensorN").val()}"
       )
       contents.append("<p>Add Sensor</p>")
       contents.append("<input id='add' type='submit' value='add'>")

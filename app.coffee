@@ -151,6 +151,7 @@ io.sockets.on("connection", (socket)->
       blocks = data[1]
     else
       blocks = []
+    console.log "path", path
     console.log "blocks", blocks
     UserMongo.saveClient path, blocks
 

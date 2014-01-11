@@ -54,13 +54,15 @@
         contents.append("<input id='monoN' type='text'>");
         contents.append("<input id='mono' type='submit' value='create'>");
         $("#mono").click(function() {
-          return socket.emit("CreateMono", $("#monoN").val());
+          socket.emit("CreateMono", $("#monoN").val());
+          return alert("create mono " + ($("#monoN").val()));
         });
         contents.append("<p>Create Sensor</p>");
         contents.append("<input id='sensorN' type='text'>");
         contents.append("<input id='sensor' type='submit' value='create'>");
         $("#sensor").click(function() {
-          return socket.emit("CreateSensor", $("#sensorN").val());
+          socket.emit("CreateSensor", $("#sensorN").val());
+          return alert("create sensor " + ($("#sensorN").val()));
         });
         contents.append("<p>Add Sensor</p>");
         contents.append("<input id='add' type='submit' value='add'>");
